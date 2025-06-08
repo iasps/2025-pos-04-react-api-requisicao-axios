@@ -1,76 +1,91 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import type React from "react";
+import Link from "next/link";
 
-interface Todo {
-  id: number
-  todo: string
-  completed: boolean
-  userId: number
+import { useEffect, useState } from "react";
+import dados, { TarefaInterface } from "@/data";
+import Cabecalho from "@/componentes/Cabecalho";
+import ModalTarefa from "@/componentes/ModalTarefa";
+
+interface TarefaProps {
+	titulo: string;
+	concluido?: boolean;
 }
 
-export default function TodosPage() {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
+const Tarefa: React.FC<TarefaProps> = ({ titulo, concluido }) => {
+	const [estaConcluido, setEstaConcluido] = useState(concluido);
 
-  useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        const response = await axios.get('https://dummyjson.com/todos')
-        setTodos(response.data.todos)
-      } catch (err) {
-        setError('Failed to fetch todos')
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
+	const classeCard = `p-3 mb-3 rounded-lg shadow-md hover:cursor-pointer hover:border ${
+		estaConcluido
+			? "bg-gray-800 hover:border-gray-800"
+			: "bg-gray-400 hover:border-gray-400"
+	}`;
 
-    fetchTodos()
-  }, [])
+	const classeCorDoTexto = estaConcluido ? "text-amber-50" : "";
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    )
-  }
+	const escutarClique = () => {
+		console.log(`A tarefa '${titulo}' foi clicada!`);
+		setEstaConcluido(!estaConcluido);
+	};
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500 text-xl">{error}</div>
-      </div>
-    )
-  }
+	return (
+		<div className={classeCard} onClick={() => escutarClique()}>
+			<h3 className={`text-xl font-bold ${classeCorDoTexto}`}>{titulo}</h3>
+			<p className={`text-sm ${classeCorDoTexto}`}>
+				{estaConcluido ? "Concluída" : "Pendente"}
+			</p>
+		</div>
+	);
+};
 
+const Tarefas: React.FC<{ dados: TarefaInterface[] }> = ({ dados }) => {
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Lista de Tarefas</h1>
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <ul className="divide-y divide-gray-200">
-            {todos.map((todo) => (
-              <li key={todo.id} className="p-4 hover:bg-gray-50">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    readOnly
-                    className="h-4 w-4 text-blue-600 rounded mr-3"
-                  />
-                  <span className={`${todo.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                    {todo.todo}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {dados.map((tarefa) => (
+        <Tarefa
+          key={tarefa.id}
+          titulo={tarefa.title}
+          concluido={tarefa.completed}
+        />
+      ))}
     </div>
-  )
-}
+  );
+};
+
+const Home = () => {
+	const [tarefas, setTarefas] = useState<TarefaInterface[]>(dados);
+	const [modalAberto, setModalAberto] = useState(false);
+
+	const adicionarTarefa = (titulo: string) => {
+		const novaTarefa: TarefaInterface = {
+			id: tarefas.length + 1,
+			title: titulo,
+			completed: false,
+		};
+		setTarefas([...tarefas, novaTarefa]);
+	};
+
+	return (
+		<div className="container mx-auto p-4">
+			<Cabecalho />
+			<button
+  				className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+  				onClick={() => setModalAberto(true)}
+			>
+  				Nova Tarefa
+			</button>
+
+			<Tarefas dados={tarefas} />
+
+			{modalAberto && (
+        		<ModalTarefa
+          			aoAdicionar={adicionarTarefa}
+          			aoFechar={() => setModalAberto(false)}
+        		/>
+      )}
+		</div>
+	);
+};
+
+export default Home;
